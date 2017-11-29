@@ -530,7 +530,7 @@ namespace UsbPrnControl
 
         private void textBox_command_Leave(object sender, EventArgs e)
         {
-            if (checkBox_hexCommand.Checked) textBox_command.Text = Accessory.checkHexString(textBox_command.Text);
+            if (checkBox_hexCommand.Checked) textBox_command.Text = Accessory.CheckHexString(textBox_command.Text);
         }
 
         /*private void textBox_terminal_TextChanged(object sender, EventArgs e)
@@ -544,7 +544,7 @@ namespace UsbPrnControl
 
         private void textBox_param_Leave(object sender, EventArgs e)
         {
-            if (checkBox_hexParam.Checked) textBox_param.Text = Accessory.checkHexString(textBox_param.Text);
+            if (checkBox_hexParam.Checked) textBox_param.Text = Accessory.CheckHexString(textBox_param.Text);
         }
 
         private void checkBox_hexParam_CheckedChanged(object sender, EventArgs e)
@@ -628,7 +628,7 @@ namespace UsbPrnControl
                                     if (Selected_Printer.GenericWrite(outByte))
                                     {
                                         progressBar1.Value = (n * tmpBuffer.Length + m) * 100 / (repeat * tmpBuffer.Length);
-                                        Accessory.delay_ms(strDelay);
+                                        Accessory.Delay_ms(strDelay);
                                         ReadUSB();
                                     }
                                     else
@@ -675,13 +675,13 @@ namespace UsbPrnControl
                                 }
                                 for (int m = 0; m < tmpBuffer.Length; m++)
                                 {
-                                    tmpBuffer[m] = Accessory.checkHexString(tmpBuffer[m]);
+                                    tmpBuffer[m] = Accessory.CheckHexString(tmpBuffer[m]);
                                     collectBuffer(outStr, Port1DataOut, DateTime.Today.ToShortDateString() + " " + DateTime.Now.ToLongTimeString() + "." + DateTime.Now.Millisecond.ToString("D3"));
                                     if (Selected_Printer.GenericWrite(Accessory.ConvertHexToByteArray(tmpBuffer[m])))
                                     {
                                         if (checkBox_hexTerminal.Checked) outStr = tmpBuffer[m];
                                         else outStr = Accessory.ConvertHexToString(tmpBuffer[m]);
-                                        Accessory.delay_ms(strDelay);
+                                        Accessory.Delay_ms(strDelay);
                                         ReadUSB();
                                     }
                                     else  //??????????????
@@ -706,14 +706,14 @@ namespace UsbPrnControl
                                 {
                                     MessageBox.Show("\r\nError reading file " + textBox_fileName.Text + ": " + ex.Message);
                                 }
-                                tmpBuffer = Accessory.checkHexString(tmpBuffer);
+                                tmpBuffer = Accessory.CheckHexString(tmpBuffer);
                                 for (int m = 0; m < tmpBuffer.Length; m += 3)
                                 {
                                     if (Selected_Printer.GenericWrite(Accessory.ConvertHexToByteArray(tmpBuffer.Substring(m, 3))))
                                     {
                                         if (checkBox_hexTerminal.Checked) outStr = tmpBuffer.Substring(m, 3);
                                         else outStr = Accessory.ConvertHexToString(tmpBuffer.Substring(m, 3));
-                                        Accessory.delay_ms(delay);
+                                        Accessory.Delay_ms(delay);
                                         ReadUSB();
                                     }
                                     else
@@ -733,7 +733,7 @@ namespace UsbPrnControl
                                 try
                                 {
                                     length = new FileInfo(textBox_fileName.Text).Length;
-                                    tmpBuffer = Accessory.checkHexString(File.ReadAllText(textBox_fileName.Text));
+                                    tmpBuffer = Accessory.CheckHexString(File.ReadAllText(textBox_fileName.Text));
                                 }
                                 catch (Exception ex)
                                 {
@@ -748,7 +748,7 @@ namespace UsbPrnControl
                             }
                         }
 
-                        if (repeat > 1) Accessory.delay_ms(delay);
+                        if (repeat > 1) Accessory.Delay_ms(delay);
                         if (SendComing > 1) n = repeat;
                     }
                     button_Send.Enabled = true;
