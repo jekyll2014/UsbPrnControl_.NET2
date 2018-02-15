@@ -42,6 +42,7 @@ namespace UsbPrnControl
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.comboBox_Printer = new System.Windows.Forms.ComboBox();
             this.label_UsbPrnList = new System.Windows.Forms.Label();
             this.button_Open = new System.Windows.Forms.Button();
@@ -78,6 +79,7 @@ namespace UsbPrnControl
             this.checkBox_saveTime = new System.Windows.Forms.CheckBox();
             this.checkBox_saveOutput = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // comboBox_Printer
@@ -170,7 +172,6 @@ namespace UsbPrnControl
             this.textBox_terminal.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.textBox_terminal.Size = new System.Drawing.Size(560, 21);
             this.textBox_terminal.TabIndex = 17;
-            this.textBox_terminal.Click += new System.EventHandler(this.textBox_terminal_Click);
             // 
             // checkBox_hexCommand
             // 
@@ -191,7 +192,6 @@ namespace UsbPrnControl
             this.checkBox_autoscroll.AutoSize = true;
             this.checkBox_autoscroll.Checked = true;
             this.checkBox_autoscroll.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_autoscroll.Enabled = false;
             this.checkBox_autoscroll.Location = new System.Drawing.Point(12, 233);
             this.checkBox_autoscroll.Name = "checkBox_autoscroll";
             this.checkBox_autoscroll.Size = new System.Drawing.Size(75, 17);
@@ -499,6 +499,10 @@ namespace UsbPrnControl
             this.label2.TabIndex = 117;
             this.label2.Text = "Save";
             // 
+            // timer1
+            // 
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -589,6 +593,7 @@ namespace UsbPrnControl
         private CheckBox checkBox_saveTime;
         private CheckBox checkBox_saveOutput;
         private Label label2;
+        private Timer timer1;
     }
 }
 
