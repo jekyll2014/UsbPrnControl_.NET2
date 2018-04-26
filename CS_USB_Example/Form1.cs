@@ -635,7 +635,7 @@ namespace UsbPrnControl
                                     if (Selected_Printer.GenericWrite(outByte))
                                     {
                                         progressBar1.Value = (n * tmpBuffer.Length + m) * 100 / (repeat * tmpBuffer.Length);
-                                        Accessory.Delay_ms(strDelay);
+                                        if (strDelay > 0) Accessory.Delay_ms(strDelay);
                                         ReadUSB();
                                     }
                                     else
@@ -688,7 +688,7 @@ namespace UsbPrnControl
                                     {
                                         if (checkBox_hexTerminal.Checked) outStr = tmpBuffer[m];
                                         else outStr = Accessory.ConvertHexToString(tmpBuffer[m]);
-                                        Accessory.Delay_ms(strDelay);
+                                        if (strDelay > 0) Accessory.Delay_ms(strDelay);
                                         ReadUSB();
                                     }
                                     else  //??????????????
