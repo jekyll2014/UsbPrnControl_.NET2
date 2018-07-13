@@ -437,8 +437,8 @@ namespace UsbPrnControl
                     timer1.Enabled = true;
                     Selected_Printer = new CePrinter();
                     Selected_Printer = CONNECTED_PRINTER_LIST[i];
-                    Selected_Printer.READ_TIMEOUT = 300;
-                    Selected_Printer.WRITE_TIMEOUT = 500;
+                    Selected_Printer.READ_TIMEOUT = 50;
+                    Selected_Printer.WRITE_TIMEOUT = 1000;
                     if (Selected_Printer.OpenDevice())
                     {
                         button_Refresh.Enabled = false;
@@ -479,9 +479,9 @@ namespace UsbPrnControl
 
         private void button_WRITE_Click(object sender, EventArgs e)
         {
-            if (Selected_Printer != null )
+            if (Selected_Printer != null)
             {
-                if ( textBox_command.Text + textBox_param.Text != "")
+                if (textBox_command.Text + textBox_param.Text != "")
                 {
                     string outStr;
                     if (checkBox_hexCommand.Checked) outStr = textBox_command.Text;
@@ -611,10 +611,11 @@ namespace UsbPrnControl
                         {
                             MessageBox.Show("\r\nError opening file " + textBox_fileName.Text + ": " + ex.Message);
                         }
-
-                        if (!checkBox_hexFileOpen.Checked)  //binary data read
+                        //binary file read
+                        if (!checkBox_hexFileOpen.Checked)
                         {
-                            if (radioButton_byByte.Checked) //byte-by-byte
+                            //byte-by-byte
+                            if (radioButton_byByte.Checked)
                             {
                                 byte[] tmpBuffer = new byte[length];
                                 try
@@ -629,7 +630,6 @@ namespace UsbPrnControl
                                 {
                                     byte[] outByte = { tmpBuffer[m] };
                                     if (checkBox_hexTerminal.Checked) outStr = Accessory.ConvertByteArrayToHex(tmpBuffer, tmpBuffer.Length);
-                                    //else outStr = ConvertHexToString(ConvertByteArrToHex(tmpBuffer, tmpBuffer.Length));
                                     else outStr = Encoding.GetEncoding(UsbPrnControl_.NET2.Properties.Settings.Default.CodePage).GetString(tmpBuffer);
                                     collectBuffer(outStr, Port1DataOut);
                                     if (Selected_Printer.GenericWrite(outByte))
@@ -642,10 +642,12 @@ namespace UsbPrnControl
                                     {
                                         collectBuffer("Write Failure", Port1Error);
                                     }
+
                                     if (SendComing > 1) m = tmpBuffer.Length;
                                 }
                             }
-                            else //stream
+                            //stream
+                            else
                             {
                                 byte[] tmpBuffer = new byte[length];
                                 try
@@ -656,24 +658,58 @@ namespace UsbPrnControl
                                 {
                                     MessageBox.Show("\r\nError reading file " + textBox_fileName.Text + ": " + ex.Message);
                                 }
-                                if (checkBox_hexTerminal.Checked) outStr = Accessory.ConvertByteArrayToHex(tmpBuffer, tmpBuffer.Length);
-                                //else outStr += ConvertHexToString(ConvertByteArrToHex(tmpBuffer, tmpBuffer.Length));
-                                else outStr = Encoding.GetEncoding(UsbPrnControl_.NET2.Properties.Settings.Default.CodePage).GetString(tmpBuffer);
+                                /*
+                                if (checkBox_hexTerminal.Checked) outStr = Accessory.ConvertByteArrayToHex(tmpBuffer, tmpBuffer.Length);                                
+                                else outStr = Encoding.GetEncoding(UsbPrnControl.Properties.Settings.Default.CodePage).GetString(tmpBuffer);
                                 collectBuffer(outStr, Port1DataOut);
                                 if (Selected_Printer.GenericWrite(tmpBuffer)) ReadUSB();
                                 else outErr = "Write Failure";
                                 collectBuffer(outErr, Port1Error);
+                                */
+                                int l = 0;
+                                while (l < tmpBuffer.Length)
+                                {
+                                    int bufsize = tmpBuffer.Length - l;
+                                    if (bufsize > CePrinter.USB_PACK) bufsize = CePrinter.USB_PACK;
+                                    byte[] buf = new byte[bufsize];
+                                    for (int i = 0; i < bufsize; i++)
+                                    {
+                                        buf[i] = tmpBuffer[l];
+                                        l++;
+                                    }
+                                    int r = 0;
+                                    if (Selected_Printer != null)
+                                    {
+                                        while (r < 10 && !Selected_Printer.GenericWrite(buf))
+                                        {
+                                            collectBuffer("USB write retry " + r.ToString(), Port1Error);
+                                            Accessory.Delay_ms(100);
+                                            Selected_Printer.CloseDevice();
+                                            Selected_Printer.OpenDevice();
+                                            r++;
+                                        }
+                                    }
+                                    if (r >= 10) outErr = "Block write failure";
+                                    ReadUSB();
+                                    if (checkBox_hexTerminal.Checked) outStr = Accessory.ConvertByteArrayToHex(buf, buf.Length);
+                                    else outStr = Encoding.GetEncoding(UsbPrnControl_.NET2.Properties.Settings.Default.CodePage).GetString(buf);
+                                    if (outErr != "") collectBuffer(outErr + " start", Port1Error);
+                                    collectBuffer(outStr, Port1DataOut);
+                                    if (outErr != "") collectBuffer(outErr + " end", Port1Error);
+                                }
+
                                 progressBar1.Value = (n * 100) / (repeat * tmpBuffer.Length);
                             }
                         }
-                        else  //hex text read
+                        //hex file read
+                        else
                         {
-                            if (radioButton_byString.Checked) //String-by-string
+                            //String-by-string
+                            if (radioButton_byString.Checked)
                             {
                                 String[] tmpBuffer = { };
                                 try
                                 {
-                                    length = new FileInfo(textBox_fileName.Text).Length;
                                     tmpBuffer = File.ReadAllText(textBox_fileName.Text).Replace("\n", "").Split('\r');
                                 }
                                 catch (Exception ex)
@@ -701,56 +737,96 @@ namespace UsbPrnControl
                                     progressBar1.Value = (n * tmpBuffer.Length + m) * 100 / (repeat * tmpBuffer.Length);
                                 }
                             }
-                            else if (radioButton_byByte.Checked) //byte-by-byte
+                            //byte-by-byte
+                            if (radioButton_byByte.Checked)
                             {
-                                String tmpBuffer = "";
+                                string tmpStrBuffer = "";
                                 try
                                 {
-                                    length = new FileInfo(textBox_fileName.Text).Length;
-                                    tmpBuffer = File.ReadAllText(textBox_fileName.Text);
+                                    tmpStrBuffer = Accessory.CheckHexString(File.ReadAllText(textBox_fileName.Text));
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show("\r\nError reading file " + textBox_fileName.Text + ": " + ex.Message);
+                                    MessageBox.Show("Error reading file " + textBox_fileName.Text + ": " + ex.Message);
                                 }
-                                tmpBuffer = Accessory.CheckHexString(tmpBuffer);
-                                for (int m = 0; m < tmpBuffer.Length; m += 3)
+                                byte[] tmpBuffer = new byte[tmpStrBuffer.Length / 3];
+                                tmpBuffer = Accessory.ConvertHexToByteArray(tmpStrBuffer);
+
+                                for (int m = 0; m < tmpBuffer.Length; m++)
                                 {
-                                    if (Selected_Printer.GenericWrite(Accessory.ConvertHexToByteArray(tmpBuffer.Substring(m, 3))))
+                                    byte[] outByte = { tmpBuffer[m] };
+                                    if (checkBox_hexTerminal.Checked) outStr = Accessory.ConvertByteArrayToHex(tmpBuffer, tmpBuffer.Length);
+                                    //else outStr = ConvertHexToString(ConvertByteArrToHex(tmpBuffer, tmpBuffer.Length));
+                                    else outStr = Encoding.GetEncoding(UsbPrnControl_.NET2.Properties.Settings.Default.CodePage).GetString(tmpBuffer);
+                                    collectBuffer(outStr, Port1DataOut);
+                                    if (Selected_Printer.GenericWrite(outByte))
                                     {
-                                        if (checkBox_hexTerminal.Checked) outStr = tmpBuffer.Substring(m, 3);
-                                        else outStr = Accessory.ConvertHexToString(tmpBuffer.Substring(m, 3));
-                                        Accessory.Delay_ms(delay);
+                                        progressBar1.Value = (n * tmpBuffer.Length + m) * 100 / (repeat * tmpBuffer.Length);
+                                        if (strDelay > 0) Accessory.Delay_ms(strDelay);
                                         ReadUSB();
                                     }
                                     else
                                     {
-                                        outErr += "Write Failure\r\n";
+                                        collectBuffer("Write Failure", Port1Error);
                                     }
 
                                     if (SendComing > 1) m = tmpBuffer.Length;
-                                    collectBuffer(outStr, Port1DataOut);
-                                    collectBuffer(outErr, Port1Error);
-                                    progressBar1.Value = (n * tmpBuffer.Length + m) * 100 / (repeat * tmpBuffer.Length);
                                 }
                             }
-                            else //stream
+                            //stream
+                            else
                             {
-                                string tmpBuffer = "";
+                                string tmpStrBuffer = "";
                                 try
                                 {
-                                    length = new FileInfo(textBox_fileName.Text).Length;
-                                    tmpBuffer = Accessory.CheckHexString(File.ReadAllText(textBox_fileName.Text));
+                                    tmpStrBuffer = Accessory.CheckHexString(File.ReadAllText(textBox_fileName.Text));
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show("\r\nError reading file " + textBox_fileName.Text + ": " + ex.Message);
+                                    MessageBox.Show("Error reading file " + textBox_fileName.Text + ": " + ex.Message);
                                 }
+                                byte[] tmpBuffer = new byte[tmpStrBuffer.Length / 3];
+                                tmpBuffer = Accessory.ConvertHexToByteArray(tmpStrBuffer);
+
+                                /*
+                                collectBuffer(outStr, Port1DataOut);
                                 if (Selected_Printer.GenericWrite(Accessory.ConvertHexToByteArray(tmpBuffer))) ReadUSB();
                                 else collectBuffer("Write Failure\r\n", Port1Error);
                                 if (checkBox_hexTerminal.Checked) outStr = tmpBuffer;
                                 else outStr = Accessory.ConvertHexToString(tmpBuffer);
-                                collectBuffer(outStr, Port1DataOut);
+                                */
+                                int l = 0;
+                                while (l < tmpBuffer.Length)
+                                {
+                                    int bufsize = tmpBuffer.Length - l;
+                                    if (bufsize > CePrinter.USB_PACK) bufsize = CePrinter.USB_PACK;
+                                    byte[] buf = new byte[bufsize];
+                                    for (int i = 0; i < bufsize; i++)
+                                    {
+                                        buf[i] = tmpBuffer[l];
+                                        l++;
+                                    }
+                                    int r = 0;
+                                    if (Selected_Printer != null)
+                                    {
+                                        while (r < 10 && !Selected_Printer.GenericWrite(buf))
+                                        {
+                                            collectBuffer("USB write retry " + r.ToString(), Port1Error);
+                                            Accessory.Delay_ms(100);
+                                            Selected_Printer.CloseDevice();
+                                            Selected_Printer.OpenDevice();
+                                            r++;
+                                        }
+                                    }
+                                    if (r >= 10) outErr = "Block write failure";
+                                    ReadUSB();
+                                    if (checkBox_hexTerminal.Checked) outStr = Accessory.ConvertByteArrayToHex(buf, buf.Length);
+                                    else outStr = Encoding.GetEncoding(UsbPrnControl_.NET2.Properties.Settings.Default.CodePage).GetString(buf);
+                                    if (outErr != "") collectBuffer(outErr + " start", Port1Error);
+                                    collectBuffer(outStr, Port1DataOut);
+                                    if (outErr != "") collectBuffer(outErr + " end", Port1Error);
+                                }
+
                                 progressBar1.Value = (n * 100) / (repeat * tmpBuffer.Length);
                             }
                         }
@@ -851,11 +927,13 @@ namespace UsbPrnControl
                 m_pGuid = new Guid(UsbPrnControl_.NET2.Properties.Settings.Default.GUID_PRINT);
                 RefreshUSB();
             }
-        }
+            if (checkBox_printer.Checked == false && checkBox_scanner.Checked == false)
+            {
+                checkBox_scanner.Checked = true;
+                m_pGuid = new Guid(UsbPrnControl_.NET2.Properties.Settings.Default.GUID_SCAN);
+                RefreshUSB();
+            }
 
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            ReadUSB();
         }
 
         private void checkBox_scanner_CheckedChanged(object sender, EventArgs e)
@@ -866,6 +944,18 @@ namespace UsbPrnControl
                 m_pGuid = new Guid(UsbPrnControl_.NET2.Properties.Settings.Default.GUID_SCAN);
                 RefreshUSB();
             }
+            if (checkBox_printer.Checked == false && checkBox_scanner.Checked == false)
+            {
+                checkBox_printer.Checked = true;
+                m_pGuid = new Guid(UsbPrnControl_.NET2.Properties.Settings.Default.GUID_PRINT);
+                RefreshUSB();
+            }
         }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            ReadUSB();
+        }
+
     }
 }

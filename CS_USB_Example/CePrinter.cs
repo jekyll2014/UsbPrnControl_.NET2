@@ -41,7 +41,7 @@ namespace UsbPrnControl
             private IntPtr hEvent_read;
 
             //private byte[] temporary_buffer_1 = new byte[2048];
-            private const int USB_PACK = 2048;
+            public const int USB_PACK = 2048;
 
             #region DLL_IMPORTED_FUNCTIONS
                 /***** CREATE FILE *****/
